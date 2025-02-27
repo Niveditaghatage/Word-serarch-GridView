@@ -45,7 +45,7 @@ android {
         dependencies {
             classpath 'com.android.tools.build:gradle:8.0.2'
             classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.21'
-            classpath 'dev.flutter:flutter-gradle-plugin:1.0.0'  // Replace with the latest version if needed
+            classpath 'dev.flutter:flutter-gradle-plugin:1.0.0'
         }
     }
 

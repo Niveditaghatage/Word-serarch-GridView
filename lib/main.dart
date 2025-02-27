@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:grid_view/SplashScreen.dart';
 
 void main() {
@@ -28,12 +28,11 @@ class GridSetupScreen extends StatefulWidget {
 class _GridSetupScreenState extends State<GridSetupScreen> with SingleTickerProviderStateMixin {
   final TextEditingController rowController = TextEditingController();
   final TextEditingController colController = TextEditingController();
-  final TextEditingController textController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
 
   int rows = 0;
   int cols = 0;
-  List<String> letters = [];
+  List<TextEditingController> gridControllers = [];
   List<bool> highlightedCells = [];
 
   late AnimationController _controller;
@@ -56,11 +55,10 @@ class _GridSetupScreenState extends State<GridSetupScreen> with SingleTickerProv
   void generateGrid() {
     String rowText = rowController.text;
     String colText = colController.text;
-    String letterText = textController.text;
 
-    if (rowText.isEmpty || colText.isEmpty || letterText.isEmpty) {
+    if (rowText.isEmpty || colText.isEmpty) {
       Fluttertoast.showToast(
-        msg: "Please fill in all fields",
+        msg: "Please enter both row and column values",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.red,
@@ -73,9 +71,8 @@ class _GridSetupScreenState extends State<GridSetupScreen> with SingleTickerProv
     setState(() {
       rows = int.tryParse(rowText) ?? 0;
       cols = int.tryParse(colText) ?? 0;
-      letters = letterText.toUpperCase().split("").take(rows * cols).toList();
+      gridControllers = List.generate(rows * cols, (index) => TextEditingController());
       highlightedCells = List.filled(rows * cols, false);
-      _controller.forward(from: 0);
     });
   }
 
@@ -83,69 +80,38 @@ class _GridSetupScreenState extends State<GridSetupScreen> with SingleTickerProv
     setState(() {
       rowController.clear();
       colController.clear();
-      textController.clear();
       searchController.clear();
       rows = 0;
       cols = 0;
-      letters = [];
+      gridControllers = [];
       highlightedCells = [];
-      _controller.reset();
     });
   }
 
-  void searchWord() {
-    String searchText = searchController.text.toUpperCase();
-    if (searchText.isEmpty) {
-      Fluttertoast.showToast(
-        msg: "Please enter a word to search",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.blue,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
-      return;
-    }
 
+  void searchWord(String searchText) {
+    searchText = searchText.toUpperCase();
     setState(() {
       highlightedCells = List.filled(rows * cols, false);
     });
 
-    bool wordFound = false;
+    if (searchText.isEmpty) return;
 
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
-        // Horizontal Check
         if (c + searchText.length <= cols) {
           checkAndHighlight(searchText, r, c, 0, 1);
         }
-
-        // Vertical Check
         if (r + searchText.length <= rows) {
           checkAndHighlight(searchText, r, c, 1, 0);
         }
-
-        // Diagonal Check (Bottom-Right)
         if (r + searchText.length <= rows && c + searchText.length <= cols) {
           checkAndHighlight(searchText, r, c, 1, 1);
         }
-
-        // Diagonal Check (Bottom-Left)
         if (r + searchText.length <= rows && c - searchText.length >= -1) {
           checkAndHighlight(searchText, r, c, 1, -1);
         }
       }
-    }
-
-    if (!highlightedCells.contains(true)) {
-      Fluttertoast.showToast(
-        msg: "Word not found",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
     }
   }
 
@@ -155,7 +121,8 @@ class _GridSetupScreenState extends State<GridSetupScreen> with SingleTickerProv
 
     for (int i = 0; i < searchText.length; i++) {
       int index = (startRow + i * rowStep) * cols + (startCol + i * colStep);
-      word += letters[index];
+      if (index < 0 || index >= gridControllers.length) return;
+      word += gridControllers[index].text.toUpperCase();
       indices.add(index);
     }
 
@@ -192,191 +159,114 @@ class _GridSetupScreenState extends State<GridSetupScreen> with SingleTickerProv
             ),
             SizedBox(height: 20),
 
-            Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(10),
-                  margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(25),
-                      bottomLeft: Radius.circular(25),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: rowController,
-                    decoration: InputDecoration(
-                      labelText: "Enter number of rows",
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 15),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-
-                Container(
-                  padding: EdgeInsets.all(10),
-                  margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(25),
-                      bottomLeft: Radius.circular(25),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: colController,
-                    decoration: InputDecoration(
-                      labelText: "Enter number of columns",
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 15),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-
-                Container(
-                  padding: EdgeInsets.all(10),
-                  margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(25),
-                      bottomLeft: Radius.circular(25),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: textController,
-                    decoration: InputDecoration(
-                      labelText: "Enter letters (m*n characters)",
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 15),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(onPressed: generateGrid, style:ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: Text("Generate Grid")),
-                ElevatedButton(onPressed: resetGrid, style:ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ), child: Text("Reset")),
-              ],
-            ),
-
-            SizedBox(height: 10),
-            Container(
-              padding: EdgeInsets.all(10),
-              margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(25),
-                  bottomLeft: Radius.circular(25),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    spreadRadius: 2,
-                    offset: Offset(2, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  labelText: "Enter word to serach ",
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 15),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-
-            ElevatedButton(onPressed: searchWord, style:ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ), child: Text("Search")),
+            buildInputField(rowController, "Enter number of rows"),
+            buildInputField(colController, "Enter number of columns"),
 
             SizedBox(height: 20),
-            if (letters.isNotEmpty)
-              Expanded(
+
+            ElevatedButton(
+              onPressed: generateGrid,
+              style: buttonStyle(Colors.deepPurple),
+              child: Text("Generate Grid"),
+            ),
+
+            SizedBox(height: 20),
+
+            if (rows > 0 && cols > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: cols,
                     crossAxisSpacing: 5,
                     mainAxisSpacing: 5,
                   ),
-                  itemCount: letters.length,
+                  itemCount: rows * cols,
                   itemBuilder: (context, index) {
-                    return ScaleTransition(
-                      scale: _controller,
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: highlightedCells[index] ? Colors.blueAccent : Colors.deepPurpleAccent,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          letters[index],
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: highlightedCells[index] ? Colors.blueAccent : Colors.deepPurpleAccent,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, spreadRadius: 1)],
+                      ),
+                      child: Center(
+                        child: TextField(
+                          controller: gridControllers[index],
+                          textAlign: TextAlign.center,
+                          textAlignVertical: TextAlignVertical.center,
                           style: GoogleFonts.robotoMono(
                             fontSize: 20,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLength: 1,
+                          decoration: InputDecoration(
+                            counterText: "",
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          textCapitalization: TextCapitalization.characters,
+                          onChanged: (value) {
+                            gridControllers[index].text = value.toUpperCase();
+                            gridControllers[index].selection = TextSelection.fromPosition(
+                                TextPosition(offset: gridControllers[index].text.length));
+                            searchWord(searchController.text);
+                          },
                         ),
                       ),
                     );
                   },
                 ),
               ),
+
+            SizedBox(height: 20),
+
+            buildInputField(searchController, "Enter word to search", onChanged: searchWord),
+
+            SizedBox(height: 10),
+
+            ElevatedButton(
+              onPressed: resetGrid,
+              style: buttonStyle(Colors.red),
+              child: Text("Reset Grid"),
+            ),
+
+            SizedBox(height: 10),
           ],
         ),
       ),
+    );
+  }
+
+  Widget buildInputField(TextEditingController controller, String label, {Function(String)? onChanged}) {
+    return Container(
+      padding: EdgeInsets.all(10),
+      margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white12,
+        borderRadius: BorderRadius.only(topRight: Radius.circular(25), bottomLeft: Radius.circular(25)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, spreadRadius: 2, offset: Offset(2, 2))],
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 15),
+        ),
+        textCapitalization: TextCapitalization.characters,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  ButtonStyle buttonStyle(Color color) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: color,
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }
